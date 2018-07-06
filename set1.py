@@ -71,12 +71,35 @@ def best_guess_decryption(buf):
 
 from tqdm import tqdm
 
-with open('4.txt', 'r') as f:
-    lines = f.readlines()
-    decrypts = []
-    for line in tqdm(lines):
-        decrypts.append(best_guess_decryption(line.strip()))
+def challenge4():
+    with open('4.txt', 'r') as f:
+        lines = f.readlines()
+        decrypts = []
+        for line in tqdm(lines):
+            decrypts.append(best_guess_decryption(line.strip()))
 
-    s_decrypts = reversed(sorted(decrypts, key=lambda k: k[0]))
+        s_decrypts = reversed(sorted(decrypts, key=lambda k: k[0]))
 
-    print s_decrypts.next()
+        print s_decrypts.next()
+
+
+# Challenge 5
+
+from itertools import cycle
+
+string = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
+res = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272"+\
+      "a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"
+
+def repeating_key_xor(string, key="ICE"):
+    ice_cycle = cycle([ord(c) for c in key])
+    ords = [ord(x) for x in string]
+    res = []
+    for o in ords:
+        ice_char = ice_cycle.next()
+        xored = o ^ ice_char
+        res.append(xored)
+    res_str = ''.join([chr(o).encode("hex") for o in res])
+    return res_str
+
+assert repeating_key_xor(string) == res
