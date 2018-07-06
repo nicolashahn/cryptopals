@@ -35,15 +35,15 @@ def xor_bufs(buf1, buf2):
 # Challenge 3
 
 import enchant
+d = enchant.Dict("en_US")
 
 message = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
 
 def score_str(string):
-    d = enchant.Dict("en_US")
     score = 0
     for token in string.split():
         token = ''.join([c for c in token if ord(c) > 33 and ord(c) < 123])
-        if len(token) > 1:
+        if len(token) > 2:
             if d.check(token):
                 score += 1
     return score
@@ -62,6 +62,21 @@ def best_guess_decryption(buf):
         score = score_str(string)
         triples.append((score, string, i))
     s_triples = reversed(sorted(triples, key=lambda k: k[0]))
-    return s_triples.next()[1]
+    return s_triples.next()
     
-print best_guess_decryption(message)
+# print best_guess_decryption(message)
+
+
+# Challenge 4
+
+from tqdm import tqdm
+
+with open('4.txt', 'r') as f:
+    lines = f.readlines()
+    decrypts = []
+    for line in tqdm(lines):
+        decrypts.append(best_guess_decryption(line.strip()))
+
+    s_decrypts = reversed(sorted(decrypts, key=lambda k: k[0]))
+
+    print s_decrypts.next()
