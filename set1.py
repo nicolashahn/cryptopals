@@ -55,7 +55,7 @@ def xor_buf_with_char(buf, i):
     return ''.join(chrs)
 
 
-def best_guess_decryption(buf, print_all=False):
+def best_guess_decryption(buf):
     triples = []
     for i in range(256):
         string = xor_buf_with_char(buf, i)
