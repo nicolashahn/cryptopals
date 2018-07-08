@@ -35,8 +35,6 @@ def xor_bufs(buf1, buf2):
 # Challenge 3
 
 from collections import Counter
-import enchant
-d = enchant.Dict("en_US")
 
 message = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
 
@@ -149,20 +147,42 @@ assert repeating_key_xor(string) == res
 
 # Challenge 6
 
+from itertools import combinations
+
 str1 = "this is a test"
 str2 = "wokka wokka!!!"
 
-def hamming_dist(str1, str2):
-    ords1 = [ord(c) for c in str1]
-    ords2 = [ord(c) for c in str2]
-    bins = [bin(o1 ^ o2) for o1, o2 in zip(ords1, ords2)]
+def hamming_dist(bytes1, bytes2):
+    if type(bytes1) == str:
+        bytes1 = [ord(c) for c in str1]
+    if type(bytes2) == str:
+        bytes2 = [ord(c) for c in str2]
+    bins = [bin(o1 ^ o2) for o1, o2 in zip(bytes1, bytes2)]
     return len([i for i in ''.join(bins) if i == '1'])
 
 assert hamming_dist(str1, str2) == 37
 
+def get_keysize(ords):
+    sz_avgs = []
+    for sz in range(2,41):
+        num_chunks = 4
+        chunks = [ords[i:i + sz] for i in xrange(0, num_chunks*sz, sz)]
+        hd_sum = 0.
+        combos = combinations(chunks, 2)
+        for combo in combos:
+            hd_sum += hamming_dist(combo[0], combo[1])
+        avg = hd_sum / sz
+        sz_avgs.append((sz, avg))
+    keysize = list(sorted(sz_avgs, key=lambda k: k[1]))[0][0]
+    return keysize
+
 def challenge6():
     with open('6.txt', 'r') as f:
         string = f.read()
-        print([ord(x) for x in string.decode("base64")])
+        ords = [ord(x) for x in string.decode("base64")]
+        keysize = get_keysize(ords)
+        chunks = [ords[i:i + keysize] for i in xrange(0, len(ords), keysize)]
+        return chunks
 
-# print challenge6()
+
+print challenge6()
