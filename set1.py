@@ -34,18 +34,59 @@ def xor_bufs(buf1, buf2):
 
 # Challenge 3
 
+from collections import Counter
 import enchant
 d = enchant.Dict("en_US")
 
 message = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
 
+letterFrequency = {'E' : 12.0,
+'T' : 9.10,
+'A' : 8.12,
+'O' : 7.68,
+'I' : 7.31,
+'N' : 6.95,
+'S' : 6.28,
+'R' : 6.02,
+'H' : 5.92,
+'D' : 4.32,
+'L' : 3.98,
+'U' : 2.88,
+'C' : 2.71,
+'M' : 2.61,
+'F' : 2.30,
+'Y' : 2.11,
+'W' : 2.09,
+'G' : 2.03,
+'P' : 1.82,
+'B' : 1.49,
+'V' : 1.11,
+'K' : 0.69,
+'X' : 0.17,
+'Q' : 0.11,
+'J' : 0.10,
+'Z' : 0.07 }
+
+def make_lf_norm(lf_dict):
+    lf_total = sum(lf_dict.values())
+    lf_norm = { k: lf_dict[k]/lf_total for k in lf_dict}
+    return lf_norm
+
+lf_norm = make_lf_norm(letterFrequency)
+
 def score_str(string):
     score = 0
-    for token in string.split():
-        token = ''.join([c for c in token if ord(c) > 33 and ord(c) < 123])
-        if len(token) > 2:
-            if d.check(token):
-                score += 1
+    bad_chars = [c.upper() for c in string if 
+                 (ord(c) < 32 and ord(c) not in [0,9,10]) or ord(c) >= 128]
+    if len(bad_chars):
+        return 0
+    uppers = [c.upper() for c in string]
+    chars = [c for c in uppers if c in letterFrequency]
+    str_lf = Counter(chars)
+    str_lf_norm = make_lf_norm(str_lf)
+    for k in str_lf_norm:
+        c_score = ((str_lf_norm[k] - lf_norm[k])**2)/lf_norm[k]
+        score += c_score
     return score
 
 def xor_buf_with_char(buf, i):
@@ -66,7 +107,6 @@ def best_guess_decryption(buf):
     
 # print best_guess_decryption(message)
 
-
 # Challenge 4
 
 from tqdm import tqdm
@@ -81,6 +121,8 @@ def challenge4():
         s_decrypts = reversed(sorted(decrypts, key=lambda k: k[0]))
 
         print s_decrypts.next()
+
+challenge4()
 
 
 # Challenge 5
@@ -103,3 +145,22 @@ def repeating_key_xor(string, key="ICE"):
     return res_str
 
 assert repeating_key_xor(string) == res
+
+
+# Challenge 6
+
+str1 = "this is a test"
+str2 = "wokka wokka!!!"
+
+def hamming_dist(str1, str2):
+    pass
+
+
+assert hamming_dist(str1, str2) == 37
+
+def challenge6():
+    with open('6.txt', 'r') as f:
+        string = f.read()
+        print([ord(x) for x in string.decode("base64")])
+
+print challenge6()
