@@ -122,7 +122,7 @@ def challenge4():
 
         print s_decrypts.next()
 
-challenge4()
+# challenge4()
 
 
 # Challenge 5
@@ -153,8 +153,10 @@ str1 = "this is a test"
 str2 = "wokka wokka!!!"
 
 def hamming_dist(str1, str2):
-    pass
-
+    ords1 = [ord(c) for c in str1]
+    ords2 = [ord(c) for c in str2]
+    bins = [bin(o1 ^ o2) for o1, o2 in zip(ords1, ords2)]
+    return len([i for i in ''.join(bins) if i == '1'])
 
 assert hamming_dist(str1, str2) == 37
 
@@ -163,4 +165,4 @@ def challenge6():
         string = f.read()
         print([ord(x) for x in string.decode("base64")])
 
-print challenge6()
+# print challenge6()
