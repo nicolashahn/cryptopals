@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 # Challenge 1
 
@@ -155,6 +156,7 @@ str1 = "this is a test"
 str2 = "wokka wokka!!!"
 
 def hamming_dist(bytes1, bytes2):
+    """XOR two strings/ord lists and count number of 1s in the binary result."""
     if type(bytes1) == str:
         bytes1 = [ord(c) for c in str1]
     if type(bytes2) == str:
@@ -164,9 +166,10 @@ def hamming_dist(bytes1, bytes2):
 
 assert hamming_dist(str1, str2) == 37
 
-def get_keysize(ords):
+def get_keysize(ords, maxlen=41):
+    """Use hamming dist to compare first $num_chunks to guess the key length."""
     sz_avgs = []
-    for sz in range(2,41):
+    for sz in range(2, maxlen):
         num_chunks = 4
         chunks = [ords[i:i + sz] for i in xrange(0, num_chunks*sz, sz)]
         hd_sum = 0.
@@ -178,31 +181,42 @@ def get_keysize(ords):
     keysize = list(sorted(sz_avgs, key=lambda k: k[1]))[0][0]
     return keysize
 
+def decrypt_rot_key_xor(ords):
+    """List of ints(ord'd chars) -> decrypted string."""
+    keysize = get_keysize(ords)
+    # split ords into $keysize blocks
+    chunks = [ords[i:i + keysize] for i in xrange(0, len(ords), keysize)]
+    # blocks = {key char position: [all ords that key char position would encrypt]}
+    blocks = {i: [] for i in range(keysize)}
+    for chunk in chunks:
+        for i in range(len(chunk)):
+            blocks[i].append(chunk[i])
+
+    # try to decrypt each chunk using letter frequency
+    key_ords = []
+    d_blocks = {i: [] for i in range(keysize)}
+    for i in sorted(blocks.keys()):
+        s_triple = best_guess_decryption_ords(blocks[i])
+        d_blocks[i] = list(s_triple[1])
+        key_ords.append(s_triple[2])
+
+    # reassemble decrypted chunks into the decrypted message
+    res = ''
+    while d_blocks:
+        for i in sorted(d_blocks.keys()):
+            res += d_blocks[i].pop(0)
+        for i in d_blocks.keys():
+            if not d_blocks[i]:
+                del d_blocks[i]
+    # key = ''.join([chr(c) for c in key_ords])
+    # return repeating_key_xor(string, key=key)
+    return res
+
+
 def challenge6():
     with open('6.txt', 'r') as f:
         string = f.read()
         ords = [ord(x) for x in string.decode("base64")]
-        keysize = get_keysize(ords)
-        chunks = [ords[i:i + keysize] for i in xrange(0, len(ords), keysize)]
-        blocks = {i: [] for i in range(keysize)}
-        for chunk in chunks:
-            for i in range(len(chunk)):
-                blocks[i].append(chunk[i])
-        key_ords = []
-        d_blocks = {i: [] for i in range(keysize)}
-        for i in sorted(blocks.keys()):
-            s_triple = best_guess_decryption_ords(blocks[i])
-            d_blocks[i] = list(s_triple[1])
-            key_ords.append(s_triple[2])
-        res = ''
-        while d_blocks:
-            for i in sorted(d_blocks.keys()):
-                res += d_blocks[i].pop(0)
-            for i in d_blocks.keys():
-                if not d_blocks[i]:
-                    del d_blocks[i]
-        # key = ''.join([chr(c) for c in key_ords])
-        # return repeating_key_xor(string, key=key)
-        return res
+        return decrypt_rot_key_xor(ords)
 
 print challenge6()
