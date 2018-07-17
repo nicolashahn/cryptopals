@@ -17,20 +17,16 @@ buf1 = "1c0111001f010100061a024b53535009181c"
 buf2 = "686974207468652062756c6c277320657965"
 res  = "746865206b696420646f6e277420706c6179"
 
-import binascii
-
 def xor_bufs(buf1, buf2):
-    # print(list(binascii.unhexlify(buf1)))
-    # print(list(binascii.unhexlify(buf2)))
-    hex_buf1 = [ord(x) for x in binascii.unhexlify(buf1)]
-    hex_buf2 = [ord(x) for x in binascii.unhexlify(buf2)]
+    hex_buf1 = [ord(x) for x in buf1.decode("hex")]
+    hex_buf2 = [ord(x) for x in buf2.decode("hex")]
     res = bytearray()
     for i in range(len(hex_buf1)):
         res.append(hex_buf1[i] ^ hex_buf2[i])
     return str(res).encode("hex")
 
-# xored = xor(buf1, buf2)
-# assert xored == res
+xored = xor_bufs(buf1, buf2)
+assert xored == res
 
 
 # Challenge 3
@@ -99,8 +95,9 @@ def best_guess_decryption_ords(ords):
     s_triples = reversed(sorted(triples, key=lambda k: k[0]))
     return s_triples.next()
     
+
 def best_guess_decryption_hex_str(buf):
-    ords = [ord(i) for i in binascii.unhexlify(buf)]
+    ords = [ord(i) for i in buf.decode("hex")]
     return best_guess_decryption_ords(ords)
 
 assert best_guess_decryption_hex_str(message)[1] == decrypted
@@ -205,11 +202,39 @@ def decrypt_rot_key_xor(ords):
     return repeating_key_xor(string, key=key)
     # return res
 
-
 def challenge6():
     with open('6.txt', 'r') as f:
         string = f.read()
         ords = [ord(x) for x in string.decode("base64")]
         return decrypt_rot_key_xor(ords)
 
-print challenge6()
+# print challenge6()
+
+# Challenge 7
+
+from Crypto.Cipher import AES
+
+def challenge7():
+    with open('7.txt', 'r') as f:
+        string7 = f.read().decode('base64')
+        key = "YELLOW SUBMARINE"
+        decipher = AES.new(key, AES.MODE_ECB)
+        return decipher.decrypt(string7)
+
+#print challenge7()
+
+# Challenge 8
+
+block_size = 16
+
+def challenge8():
+    with open('8.txt', 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            ords = [ord(x) for x in line.strip().decode("hex")]
+            chunks = [tuple(ords[i:i + block_size]) for i in xrange(0, len(ords), block_size)]
+            chunks_set = set(chunks)
+            if len(chunks) != len(chunks_set):
+                return line
+
+print challenge8()
