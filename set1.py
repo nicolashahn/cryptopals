@@ -93,7 +93,7 @@ def best_guess_decryption_ords(ords):
     triples = []
     for i in range(256):
         xors = [o^i for o in ords]
-        string = ''.join([chr(i) for i in xors])
+        string = ''.join([chr(x) for x in xors])
         score = score_str(string)
         triples.append((score, string, i))
     s_triples = reversed(sorted(triples, key=lambda k: k[0]))
@@ -200,17 +200,10 @@ def decrypt_rot_key_xor(ords):
         d_blocks[i] = list(s_triple[1])
         key_ords.append(s_triple[2])
 
-    # reassemble decrypted chunks into the decrypted message
-    res = ''
-    while d_blocks:
-        for i in sorted(d_blocks.keys()):
-            res += d_blocks[i].pop(0)
-        for i in d_blocks.keys():
-            if not d_blocks[i]:
-                del d_blocks[i]
-    # key = ''.join([chr(c) for c in key_ords])
-    # return repeating_key_xor(string, key=key)
-    return res
+    key = ''.join([chr(c) for c in key_ords])
+    string = ''.join([chr(c) for c in ords])
+    return repeating_key_xor(string, key=key)
+    # return res
 
 
 def challenge6():
