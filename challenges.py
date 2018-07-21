@@ -214,27 +214,50 @@ def challenge6():
 
 from Crypto.Cipher import AES
 
+def decrypt_aes_ecb(ciphertext, key):
+    decipher = AES.new(key, AES.MODE_ECB)
+    return decipher.decrypt(ciphertext)
+
 def challenge7():
     with open('7.txt', 'r') as f:
         string7 = f.read().decode('base64')
         key = "YELLOW SUBMARINE"
-        decipher = AES.new(key, AES.MODE_ECB)
-        return decipher.decrypt(string7)
+        return decrypt_aes_ecb(string7, key)
 
-#print challenge7()
+# print challenge7()
 
 # Challenge 8
 
 block_size = 16
 
+def detect_aes_ecb(ciphertexts):
+    """ciphertexts: list of hex encoded ciphertext strings"""
+    for ciphertext in ciphertexts:
+        ords = [ord(x) for x in ciphertext.strip().decode("hex")]
+        chunks = [tuple(ords[i:i + block_size]) for i in xrange(0, len(ords), block_size)]
+        chunks_set = set(chunks)
+        if len(chunks) != len(chunks_set):
+            return ciphertext
+
+
 def challenge8():
     with open('8.txt', 'r') as f:
         lines = f.readlines()
-        for line in lines:
-            ords = [ord(x) for x in line.strip().decode("hex")]
-            chunks = [tuple(ords[i:i + block_size]) for i in xrange(0, len(ords), block_size)]
-            chunks_set = set(chunks)
-            if len(chunks) != len(chunks_set):
-                return line
+        return detect_aes_ecb(lines)
 
-print challenge8()
+# print challenge8()
+
+
+#########
+# SET 2 #
+#########
+
+# Challenge 9
+
+def pad_to_len(string, length):
+    padlen = length % len(string)
+    pad = chr(padlen)*padlen
+    return string+pad
+
+assert pad_to_len("YELLOW SUBMARINE", 20) == "YELLOW SUBMARINE\x04\x04\x04\x04"
+assert pad_to_len("YELLOW SUBMARINE", 21) == "YELLOW SUBMARINE\x05\x05\x05\x05\x05"
