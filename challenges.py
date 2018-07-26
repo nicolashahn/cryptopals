@@ -259,5 +259,24 @@ def pad_to_len(string, length):
     pad = chr(padlen)*padlen
     return string+pad
 
-assert pad_to_len("YELLOW SUBMARINE", 20) == "YELLOW SUBMARINE\x04\x04\x04\x04"
-assert pad_to_len("YELLOW SUBMARINE", 21) == "YELLOW SUBMARINE\x05\x05\x05\x05\x05"
+
+assert pad_to_len("YELLOW SUBMARINE", 20) == \
+    "YELLOW SUBMARINE\x04\x04\x04\x04"
+assert pad_to_len("YELLOW SUBMARINE", 21) == \
+    "YELLOW SUBMARINE\x05\x05\x05\x05\x05"
+
+
+# is this cheating?
+def decrypt_aes_cbc(ciphertext, key, IV='\x00'*16):
+    decipher = AES.new(key, AES.MODE_CBC, IV=IV)
+    return decipher.decrypt(ciphertext)
+
+
+def challenge10():
+    with open('10.txt', 'r') as f:
+        string10 = f.read().decode('base64')
+        key = "YELLOW SUBMARINE"
+        return decrypt_aes_cbc(string10, key)
+
+
+print challenge10()
