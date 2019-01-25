@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+from random import randint
 from itertools import cycle, combinations
 from collections import Counter
 
@@ -275,9 +276,26 @@ def challenge8():
 
 
 def pad_to_len(string, length):
+    """
+    Pad with byte values equal to the number of characters needed to pad to
+    the given length.
+
+    pad_to_len("abc", 6) -> "abc\x03\x03\x03"
+    """
     padlen = length % len(string)
     pad = chr(padlen) * padlen
     return string + pad
+
+
+def pad_to_blocksize(string, blocksize):
+    """
+    Add padding to the string until it fits into even `blocksize`
+    pieces.
+    """
+    if len(string) % blocksize == 0:
+        return string
+    length = len(string) + AES_BSZ - (len(string) % AES_BSZ)
+    return pad_to_len(string, length)
 
 
 def challenge9():
@@ -294,12 +312,10 @@ def challenge9():
 
 
 def decrypt_aes_cbc(ciphertext, key, IV=None):
+    """ Mimics AES.new(key, AES.MODE_CBC).decrypt() """
     if not IV:
         IV = b'\x00' * AES_BSZ
-    padded_ct = ciphertext
-    if len(ciphertext) % AES_BSZ != 0:
-        length = len(ciphertext) + AES_BSZ - (len(ciphertext) % AES_BSZ)
-        padded_ct = pad_to_len(ciphertext, length)
+    padded_ct = pad_to_blocksize(ciphertext, AES_BSZ)
     res = ''
     prev = IV
     for i in range(0, len(padded_ct), AES_BSZ):
@@ -318,6 +334,48 @@ def challenge10():
         print res
 
 
+def randstr(length):
+    return ''.join([chr(randint(0, 255)) for _ in range(length)])
+
+
+def random_ecb_or_cbc_encrypt(plaintext):
+    """
+    Randomly encrypts a plaintext using AES with either ECB or CBC mode,
+    chosen at random, also adding a few random bytes before and after the
+    plaintext.
+    """
+    key = randstr(AES_BSZ)
+    plaintext = (
+        ''.join([randstr(1) for _ in range(randint(5, 10))]) +
+        plaintext +
+        ''.join([randstr(1) for _ in range(randint(5, 10))])
+    )
+    plaintext = pad_to_blocksize(plaintext, AES_BSZ)
+    if randint(0, 1) == 0:
+        ecb = AES.new(key, AES.MODE_ECB)
+        ciphertext = ecb.encrypt(plaintext)
+    else:
+        iv = randstr(AES_BSZ)
+        cbc = AES.new(key, AES.MODE_CBC, iv)
+        ciphertext = cbc.encrypt(plaintext)
+    return ciphertext
+
+
+def ecb_or_cbc_oracle(ciphertext):
+    # TODO detect whether the ciphertext was ECB or CBC
+    return True
+
+
+def challenge11():
+    ciphertext = random_ecb_or_cbc_encrypt(
+        "There's something about us I've got to do, "
+        "Some kind of secret I will share with you"
+    )
+    print ciphertext
+    is_ecb = ecb_or_cbc_oracle(ciphertext)
+    print is_ecb
+
+
 def main():
     # challenge1()
     # challenge2()
@@ -328,7 +386,8 @@ def main():
     # challenge7()
     # challenge8()
     # challenge9()
-    challenge10()
+    # challenge10()
+    challenge11()
 
 
 if __name__ == '__main__':
