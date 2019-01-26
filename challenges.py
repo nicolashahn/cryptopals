@@ -89,7 +89,7 @@ lf_norm = make_lf_norm(LETTER_FREQ)
 
 def score_str(string):
     score = 0
-    bad_chars = [c.upper() for c in string if 
+    bad_chars = [c.upper() for c in string if
                  (ord(c) < 32 and ord(c) not in [0,9,10]) or ord(c) >= 128]
     if len(bad_chars):
         return 0
@@ -338,12 +338,15 @@ def randstr(length):
     return ''.join([chr(randint(0, 255)) for _ in range(length)])
 
 
-def random_ecb_or_cbc_encrypt(plaintext):
+def ecb_or_cbc_encrypt(plaintext, mode='random'):
     """
-    Randomly encrypts a plaintext using AES with either ECB or CBC mode,
-    chosen at random, also adding a few random bytes before and after the
-    plaintext.
+    Encrypts a plaintext using AES with either ECB or CBC mode, chosen at
+    random if mode="random", also adding a few random bytes before and after
+    the plaintext. Uses a random key and IV (for CBC) as well.
     """
+    if mode == 'random':
+        mode = 'ECB' if randint(0, 1) == 0 else 'CBC'
+
     key = randstr(AES_BSZ)
     plaintext = (
         ''.join([randstr(1) for _ in range(randint(5, 10))]) +
@@ -351,29 +354,40 @@ def random_ecb_or_cbc_encrypt(plaintext):
         ''.join([randstr(1) for _ in range(randint(5, 10))])
     )
     plaintext = pad_to_blocksize(plaintext, AES_BSZ)
-    if randint(0, 1) == 0:
+
+    if mode == 'ECB':
         ecb = AES.new(key, AES.MODE_ECB)
         ciphertext = ecb.encrypt(plaintext)
-    else:
+    elif mode == 'CBC':
         iv = randstr(AES_BSZ)
         cbc = AES.new(key, AES.MODE_CBC, iv)
         ciphertext = cbc.encrypt(plaintext)
+    else:
+        raise Exception("invalid mode")
+
     return ciphertext
 
 
-def ecb_or_cbc_oracle(ciphertext):
-    # TODO detect whether the ciphertext was ECB or CBC
-    return True
+def detect_ecb_or_cbc(func):
+    """
+    Given a function that is either encrypting using ECB or CBC, return True if
+    the function is ECB, False if CBC.
+    """
+    plaintext = b'\x00' * 100
+    ciphertext = func(plaintext)
+    blocks = [ciphertext[i:i+AES_BSZ]
+              for i in range(0, len(ciphertext), AES_BSZ)]
+    xor_b0_b1 = strxor(blocks[0], blocks[1])
+    xor_b0_b2 = strxor(blocks[0], blocks[2])
+    sum_diff = sum(
+        [abs(ord(x) - ord(y)) for x, y in zip(xor_b0_b1, xor_b0_b2)]
+    )
+    return sum_diff == 0
 
 
 def challenge11():
-    ciphertext = random_ecb_or_cbc_encrypt(
-        "There's something about us I've got to do, "
-        "Some kind of secret I will share with you"
-    )
-    print ciphertext
-    is_ecb = ecb_or_cbc_oracle(ciphertext)
-    print is_ecb
+    rand_res = detect_ecb_or_cbc(ecb_or_cbc_encrypt)
+    print rand_res
 
 
 def main():
