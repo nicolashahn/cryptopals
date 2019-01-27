@@ -10,6 +10,7 @@ from Crypto.Cipher import AES
 from Crypto.Util.strxor import strxor
 
 
+# average distribution of letters in English text (in %)
 LETTER_FREQ = {
     'E': 12.0,
     'T': 9.10,
@@ -39,7 +40,11 @@ LETTER_FREQ = {
     'Z': 0.07
 }
 
+# default AES blocksize
 AES_BSZ = 16
+
+# default hardcoded 128 bit key
+DEFAULT_KEY = b'\x13\xef\xab"\x96S\xa9\x9a\xb2(;\x04\xb7V\xbc^'
 
 
 # Challenge 1
@@ -275,27 +280,29 @@ def challenge8():
 # Challenge 9
 
 
-def pad_to_len(string, length):
+def pad_to_len(string, length, leftpad=False, pad_char=None):
     """
     Pad with byte values equal to the number of characters needed to pad to
-    the given length.
+    the given length (by default, if pad_char given, use that as the padding
+    char instead).
 
     pad_to_len("abc", 6) -> "abc\x03\x03\x03"
     """
-    padlen = length % len(string)
-    pad = chr(padlen) * padlen
-    return string + pad
+    pad_len = length - len(string)
+    if not pad_char:
+        pad_char = chr(pad_len)
+    pad = pad_char * pad_len
+    return pad + string if leftpad else string + pad
 
 
-def pad_to_blocksize(string, blocksize):
+def pad_to_blocksize(string, blocksize=AES_BSZ, leftpad=False, pad_char=None):
     """
-    Add padding to the string until it fits into even `blocksize`
-    pieces.
+    Add padding to the string until it fits into even `blocksize` pieces.
     """
     if len(string) % blocksize == 0:
         return string
-    length = len(string) + AES_BSZ - (len(string) % AES_BSZ)
-    return pad_to_len(string, length)
+    length = len(string) + blocksize - (len(string) % blocksize)
+    return pad_to_len(string, length, leftpad=leftpad, pad_char=pad_char)
 
 
 def challenge9():
@@ -315,7 +322,7 @@ def decrypt_aes_cbc(ciphertext, key, IV=None):
     """ Mimics AES.new(key, AES.MODE_CBC).decrypt() """
     if not IV:
         IV = b'\x00' * AES_BSZ
-    padded_ct = pad_to_blocksize(ciphertext, AES_BSZ)
+    padded_ct = pad_to_blocksize(ciphertext)
     res = ''
     prev = IV
     for i in range(0, len(padded_ct), AES_BSZ):
@@ -353,7 +360,7 @@ def ecb_or_cbc_encrypt(plaintext, mode='random'):
         plaintext +
         ''.join([randstr(1) for _ in range(randint(5, 10))])
     )
-    plaintext = pad_to_blocksize(plaintext, AES_BSZ)
+    plaintext = pad_to_blocksize(plaintext)
 
     if mode == 'ECB':
         ecb = AES.new(key, AES.MODE_ECB)
@@ -390,6 +397,70 @@ def challenge11():
     print rand_res
 
 
+def encrypt_ecb(plaintext, key=DEFAULT_KEY):
+    ecb = AES.new(key, AES.MODE_ECB)
+    return ecb.encrypt(plaintext)
+
+
+def append_unknown_str_and_encrypt_ecb(my_plaintext, unknown_str):
+    plaintext = pad_to_blocksize(my_plaintext + unknown_str)
+    ciphertext = encrypt_ecb(plaintext) # uses DEFAULT_KEY
+    return ciphertext
+
+
+def decrypt_appended_str_ecb(unknown_str):
+
+    def encryption_func(plaintext):
+        return append_unknown_str_and_encrypt_ecb(plaintext, unknown_str)
+
+    # find blocksize
+    initial_len = len(encryption_func(""))
+    blocksize = None
+    i = 1
+    while not blocksize:
+        my_plaintext = 'a' * i
+        curr_len = len(encryption_func(my_plaintext))
+        if curr_len != initial_len:
+            blocksize = curr_len - initial_len
+        i += 1
+
+    # ensure that the function is using ECB
+    assert detect_ecb_or_cbc(encryption_func) == True
+
+    known_str = ""
+    while unknown_str:
+
+        # craft input block with len + 1 % blocksize == 0
+        short_block = 'a' * (blocksize - 1)
+
+        # make dict of every possible last byte and the resulting ciphertext's
+        # first block
+        possibilities = {
+            encryption_func(short_block + chr(x))[:blocksize]: chr(x)
+            for x in range(256)
+        }
+
+        # match output of the one-byte-short input to one of the dict entries
+        match_block = possibilities[ encryption_func(short_block)[:blocksize] ]
+        # now we have the next byte of the unknown_str
+        next_byte = match_block[-1]
+        known_str += next_byte
+        # by chopping off first unkown_str byte we can repeat process on the
+        # next one
+        unknown_str = unknown_str[1:]
+
+    return known_str
+
+
+def challenge12():
+    unknown_str = (
+        "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg"
+        "aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq"
+        "dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"
+    ).decode('base64')
+    print decrypt_appended_str_ecb(unknown_str)
+
+
 def main():
     # challenge1()
     # challenge2()
@@ -401,7 +472,8 @@ def main():
     # challenge8()
     # challenge9()
     # challenge10()
-    challenge11()
+    # challenge11()
+    challenge12()
 
 
 if __name__ == '__main__':
