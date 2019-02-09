@@ -4,6 +4,8 @@
 from random import randint
 from itertools import cycle, combinations
 from collections import Counter
+from urlparse import parse_qs
+from urllib import urlencode, unquote
 
 from tqdm import tqdm
 from Crypto.Cipher import AES
@@ -461,6 +463,42 @@ def challenge12():
     print decrypt_appended_str_ecb(unknown_str)
 
 
+def decode_cookie(cookie_str):
+    raw_obj = parse_qs(cookie_str)
+    return {k: v[0] for k, v in raw_obj.items()}
+
+
+def encode_cookie(cookie_obj):
+    return unquote(urlencode(cookie_obj))
+
+
+def profile_for(user_email):
+    user_email = user_email.replace('=', '').replace('&', '')
+    user_obj = {
+        'email': user_email,
+        'uid': 10,
+        'role': 'user'
+    }
+    return encode_cookie(user_obj)
+
+
+def make_admin_profile():
+    # TODO
+    pass
+
+
+def challenge13():
+    cookie_str = 'foo=bar&baz=qux&zap=zazzle'
+    cookie_obj = {
+        'foo': 'bar',
+        'baz': 'qux',
+        'zap': 'zazzle',
+    }
+    assert decode_cookie(cookie_str) == cookie_obj
+    assert encode_cookie(cookie_obj) == cookie_str
+    assert profile_for('foo@bar.com') == 'role=user&email=foo@bar.com&uid=10'
+
+
 def main():
     # challenge1()
     # challenge2()
@@ -473,7 +511,8 @@ def main():
     # challenge9()
     # challenge10()
     # challenge11()
-    challenge12()
+    # challenge12()
+    challenge13()
 
 
 if __name__ == '__main__':
