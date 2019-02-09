@@ -482,9 +482,30 @@ def profile_for(user_email):
     return encode_cookie(user_obj)
 
 
-def make_admin_profile():
+def make_admin_profile(not_admin_profile):
     # TODO
-    pass
+    return not_admin_profile
+
+
+def encrypt_profile(cookie_str):
+    padded_cookie_str = pad_to_blocksize(cookie_str)
+    aes = AES.new(DEFAULT_KEY, AES.MODE_ECB)
+    encrypted_cookie = aes.encrypt(padded_cookie_str)
+    return encrypted_cookie
+
+
+def remove_padding(padded_str):
+    pad_byte = ord(padded_str[-1])
+    assert pad_byte <= AES_BSZ
+    unpadded = padded_str[:-pad_byte]
+    return unpadded
+
+
+def decrypt_profile(cookie_ciphertext):
+    aes = AES.new(DEFAULT_KEY, AES.MODE_ECB)
+    padded_cookie_str = aes.decrypt(cookie_ciphertext)
+    cookie_str = remove_padding(padded_cookie_str)
+    return cookie_str
 
 
 def challenge13():
@@ -496,7 +517,12 @@ def challenge13():
     }
     assert decode_cookie(cookie_str) == cookie_obj
     assert encode_cookie(cookie_obj) == cookie_str
-    assert profile_for('foo@bar.com') == 'role=user&email=foo@bar.com&uid=10'
+    foobar_profile = profile_for('foo@bar.com')
+    assert foobar_profile == 'role=user&email=foo@bar.com&uid=10'
+    assert remove_padding('asdf\x03\x03\x03') == 'asdf'
+    encrypted_profile = encrypt_profile(foobar_profile)
+    assert decrypt_profile(encrypted_profile) == foobar_profile
+    assert decode_cookie(make_admin_profile(foobar_profile))['role'] == 'admin'
 
 
 def main():
